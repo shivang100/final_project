@@ -9,8 +9,12 @@ __pycache__/
 *.sql
 hotel-backend/**/instance/
 
-# Frontend
-node_modules/
+# frontend
+hotel-management-frontend/node_modules/
+hotel-management-frontend/.angular/
+hotel-management-frontend/dist/
+hotel-management-frontend/build/
+
 
 # Env & IDE
 .env
