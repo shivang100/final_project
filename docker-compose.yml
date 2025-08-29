@@ -1,0 +1,120 @@
+version: "3.9"
+
+services:
+  # ========== FRONTEND (Angular built → Nginx) ==========
+  frontend:
+    build:
+      context: ./hotel-management-frontend
+      dockerfile: Dockerfile
+    container_name: hotel-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ========== API GATEWAY ==========
+  api-gateway:
+    build:
+      context: ./hotel-backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    environment:
+      AUTH_URL: http://auth-service:5001
+      ROOM_URL: http://room-service:5002
+      BOOKING_URL: http://booking-service:5003
+      JWT_SECRET_KEY: "Shivang100@"
+    ports:
+      - "5000:5000"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      room-service:
+        condition: service_healthy
+      booking-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5000/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  # ========== AUTH SERVICE ==========
+  auth-service:
+    build:
+      context: ./hotel-backend/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    environment:
+      FLASK_ENV: production
+      JWT_SECRET_KEY: "Shivang100@"
+      SQLALCHEMY_DATABASE_URI: sqlite:////data/auth.db
+    volumes:
+      - auth_data:/data
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5001/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  # ========== ROOM SERVICE ==========
+  room-service:
+    build:
+      context: ./hotel-backend/room-service
+      dockerfile: Dockerfile
+    container_name: room-service
+    environment:
+      FLASK_ENV: production
+      JWT_SECRET_KEY: "Shivang100@"
+      SQLALCHEMY_DATABASE_URI: sqlite:////data/rooms.db
+    volumes:
+      - rooms_data:/data
+      - rooms_uploads:/app/uploads
+    ports:
+      - "5002:5002"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5002/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  # ========== BOOKING SERVICE ==========
+  booking-service:
+    build:
+      context: ./hotel-backend/booking-service
+      dockerfile: Dockerfile
+    container_name: booking-service
+    environment:
+      FLASK_ENV: production
+      JWT_SECRET_KEY: "Shivang100@"
+      SQLALCHEMY_DATABASE_URI: sqlite:////data/bookings.db
+      ROOMS_BASE_URL: http://room-service:5002
+    volumes:
+      - bookings_data:/data
+    ports:
+      - "5003:5003"
+    depends_on:
+      room-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5003/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  auth_data:
+  rooms_data:
+  rooms_uploads:
+  bookings_data:

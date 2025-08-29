@@ -1,0 +1,19 @@
+# Python / services
+venv/
+__pycache__/
+*.pyc
+
+# DB & dumps
+*.db
+*.sqlite
+*.sql
+hotel-backend/**/instance/
+
+# Frontend
+node_modules/
+
+# Env & IDE
+.env
+*.env
+.vscode/
+.idea/

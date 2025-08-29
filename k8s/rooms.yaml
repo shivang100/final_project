@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: room-service
+  namespace: hotel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: room-service
+  template:
+    metadata:
+      labels:
+        app: room-service
+    spec:
+      containers:
+        - name: rooms
+          image: hotel-room-service:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5002
+          env:
+            - name: FLASK_ENV
+              value: "production"
+            - name: SQLALCHEMY_DATABASE_URI
+              value: "sqlite:////data/rooms.db"
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hotel-secrets
+                  key: JWT_SECRET_KEY
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: uploads
+              mountPath: /app/uploads
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5002
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: rooms-pvc
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: rooms-uploads-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: room-service
+  namespace: hotel
+spec:
+  selector:
+    app: room-service
+  ports:
+    - name: http
+      port: 5002
+      targetPort: 5002
